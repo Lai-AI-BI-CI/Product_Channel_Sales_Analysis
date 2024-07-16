@@ -123,7 +123,7 @@ gen_date <- today()
 # gen_date <- as.Date("2022-12-31")
 
 ######################## Change ########################
-setwd("C:/Users/lai.yeung/Downloads/02_Regular Report/R0003")
+# setwd("C:/Users/lai.yeung/Downloads/02_Regular Report/R0003")
 # setwd("D:/Google Drive/Work/Vita Green/R0003")
 
 report_years <- c(2021, 2022, 2023)
@@ -131,6 +131,7 @@ report_measures <- c("Value", "Qty")
 channels <- c("MNG", "WTC")
 
 # expand.grid(report_year, report_measures) %>% unite("sheet_name", "Var1":"Var2", sep = " ")
+setwd("C:/Users/kwanl/Documents/GitHub/SalesDash/docs")
 load("Report_Data.RData")
 
 raw_data_6 <- raw_data_6 %>% filter(YEAR %in% report_years)
@@ -230,7 +231,8 @@ hline <- function(y = 0, color = "blue") {
 # R Color Dict
 color <- grDevices::colors()[grep('gr(a|e)y', grDevices::colors(), invert = T)]
 
-setwd("C:/Users/lai.yeung/Downloads/02_Regular Report/R0003")
+# setwd("C:/Users/lai.yeung/Downloads/02_Regular Report/R0003")
+setwd("C:/Users/kwanl/Documents/GitHub/SalesDash/docs")
 r_color_codes <- read_xlsx("RColorCodes.xlsx", guess_max = 1000000, .name_repair = "minimal", sheet = "Colors") %>% select(4, 6, 8)
 names(r_color_codes) <- c("NAME", "HEX", "RGB")
 
