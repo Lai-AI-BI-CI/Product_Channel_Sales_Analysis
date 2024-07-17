@@ -1,5 +1,5 @@
 ---
-title: "Vita Green Scan Sales Report (MNG and WTC)"
+title: "Sales Report Ploty Demo (MNG and WTC)"
 author: "Author: Lai Yeung"
 output:
   html_document:
@@ -1153,37 +1153,37 @@ $(document).ready(filter_default);
 ######################################## Product Revenue Portfolio Distribution ########################################
 temp_data <- rbind(
   raw_data_6 %>%
-    group_by(Brand, ITEMNAME_CHI, YEAR, MONTH) %>%
+    group_by(Brand, ITEMID, YEAR, MONTH) %>%
     summarise(PROD_REV = sum(PROD_REV)
               ,PROD_QTY = sum(PROD_QTY)) %>%
     mutate(CHANNEL = "Total: MNG + WTC")
   ,
   raw_data_6 %>%
-    group_by(CHANNEL, Brand, ITEMNAME_CHI, YEAR, MONTH) %>%
+    group_by(CHANNEL, Brand, ITEMID, YEAR, MONTH) %>%
     summarise(PROD_REV = sum(PROD_REV)
               ,PROD_QTY = sum(PROD_QTY))
 ) %>%
   mutate(CHANNEL = factor(CHANNEL, levels = c("Total: MNG + WTC", "MNG", "WTC"))
-         ,ITEMNAME_CHI = factor(ITEMNAME_CHI)) %>%
+         ,ITEMID = factor(ITEMID)) %>%
   mutate(MONTH_ABBR = factor(month.abb[MONTH],levels=month.abb)) %>%
   filter(!Brand %in% c("DC Combo", "INMED", "VCM"))
 temp_data$Brand <- droplevels(temp_data$Brand)
 
 temp_data <- temp_data %>%
-  group_by(CHANNEL, Brand, ITEMNAME_CHI, YEAR) %>%
+  group_by(CHANNEL, Brand, ITEMID, YEAR) %>%
   summarise(PROD_REV = sum(PROD_REV)
             ,PROD_QTY = sum(PROD_QTY)) %>%
   filter(CHANNEL == "Total: MNG + WTC" & YEAR == 2023 & PROD_REV != 0) %>%
   # link_target order
   ungroup() %>%
   arrange(CHANNEL, Brand, desc(PROD_REV)) %>%
-  mutate(ITEMNAME_CHI = factor(ITEMNAME_CHI, levels = unique(ITEMNAME_CHI)))
+  mutate(ITEMID = factor(ITEMID, levels = unique(ITEMID)))
 
-sankey_node <- data.frame(node_label = c(levels(temp_data$Brand), levels(temp_data$ITEMNAME_CHI))) %>%
+sankey_node <- data.frame(node_label = c(levels(temp_data$Brand), levels(temp_data$ITEMID))) %>%
   mutate(node_label_index = row_number()-1)
 
 sankey_data <- temp_data %>% left_join(sankey_node, by = c("Brand" = "node_label")) %>% rename("link_source" = node_label_index) %>%
-  left_join(sankey_node, by = c("ITEMNAME_CHI" = "node_label")) %>% rename("link_target" = node_label_index) %>%
+  left_join(sankey_node, by = c("ITEMID" = "node_label")) %>% rename("link_target" = node_label_index) %>%
   mutate(link_value = PROD_REV)
 
 fig <- sankey_data %>% plot_ly(
@@ -1249,18 +1249,18 @@ fig
 # ######################################## Pareto : Product Revenue Portfolio Distribution ########################################
 # temp_data <- rbind(
 #   raw_data_6 %>%
-#     group_by(Brand, ITEMNAME_CHI, YEAR, MONTH) %>%
+#     group_by(Brand, ITEMID, YEAR, MONTH) %>%
 #     summarise(PROD_REV = sum(PROD_REV)
 #               ,PROD_QTY = sum(PROD_QTY)) %>%
 #     mutate(CHANNEL = "Total: MNG + WTC")
 #   ,
 #   raw_data_6 %>%
-#     group_by(CHANNEL, Brand, ITEMNAME_CHI, YEAR, MONTH) %>%
+#     group_by(CHANNEL, Brand, ITEMID, YEAR, MONTH) %>%
 #     summarise(PROD_REV = sum(PROD_REV)
 #               ,PROD_QTY = sum(PROD_QTY))
 # ) %>%
 #   mutate(CHANNEL = factor(CHANNEL, levels = c("Total: MNG + WTC", "MNG", "WTC"))
-#          ,ITEMNAME_CHI = factor(ITEMNAME_CHI)) %>%
+#          ,ITEMID = factor(ITEMID)) %>%
 #   mutate(MONTH_ABBR = factor(month.abb[MONTH],levels=month.abb)) %>%
 #   filter(!Brand %in% c("DC Combo", "INMED", "VCM"))
 # temp_data$Brand <- droplevels(temp_data$Brand)
@@ -1270,7 +1270,7 @@ fig
 #   # Monthly: YOY and MOM
 #   temp_data <- temp_data %>%
 #     # YOY
-#     group_by(CHANNEL, Brand, ITEMNAME_CHI, MONTH) %>%
+#     group_by(CHANNEL, Brand, ITEMID, MONTH) %>%
 #     mutate(LAST_YEAR = ifelse((YEAR - lag(YEAR, 1)) > 1, NA, lag(YEAR, 1))
 #            ,measure_value_LAST_YEAR = ifelse((YEAR - lag(YEAR, 1)) > 1, NA, lag(get(measure_value), 1))
 #     ) %>%
@@ -1279,7 +1279,7 @@ fig
 #            ,YOY_LABEL = factor(ifelse(get(measure_value) - measure_value_LAST_YEAR > 0, "Up", "Down"), levels = c("Up", "Down"))
 #     ) %>%
 #     # MOM
-#     group_by(CHANNEL, Brand, ITEMNAME_CHI) %>%
+#     group_by(CHANNEL, Brand, ITEMID) %>%
 #     mutate(measure_value_LAST_MONTH =  lag(get(measure_value), 1)
 #            ,MOM = get(measure_value) - lag(get(measure_value), 1)
 #            ,MOM_PCT = get(measure_value)/lag(get(measure_value), 1)-1
@@ -1302,7 +1302,7 @@ fig
 # # YTD Difference Data format: geom_point, geom_text
 # ytd <- temp_data %>%
 #   filter(MONTH <= month(max(raw_data_6$DATE))) %>%
-#   group_by(CHANNEL, Brand, ITEMNAME_CHI, YEAR) %>%
+#   group_by(CHANNEL, Brand, ITEMID, YEAR) %>%
 #   summarise(PROD_REV = sum(PROD_REV)
 #             ,PROD_QTY = sum(PROD_QTY)
 #             ,PROD_REV_LAST_YEAR = sum(PROD_REV_LAST_YEAR)
@@ -1331,28 +1331,28 @@ fig
 # plot_pareto_YTD_prod_rev <- lapply(levels(temp_data$CHANNEL), function(i) {
 # 
 #   ytd <- ytd %>% filter(CHANNEL == i & YEAR == year(max(raw_data_6$DATE)) & PROD_REV != 0) %>%
-#     # Order ITEMNAME_CHI by YEAR, desc(PROD_REV), filtering YEAR will affect the order
+#     # Order ITEMID by YEAR, desc(PROD_REV), filtering YEAR will affect the order
 #     ungroup() %>%
 #     arrange(CHANNEL, YEAR, desc(PROD_REV)) %>%
-#     mutate(ITEMNAME_CHI = factor(ITEMNAME_CHI, levels = unique(ITEMNAME_CHI)))
-#   ytd$ITEMNAME_CHI <- droplevels(ytd$ITEMNAME_CHI)
+#     mutate(ITEMID = factor(ITEMID, levels = unique(ITEMID)))
+#   ytd$ITEMID <- droplevels(ytd$ITEMID)
 #   # ytd$YOY_LABEL <- droplevels(ytd$YOY_LABEL)
 # 
 #   # Add traces
 #   fig <- ytd %>% plot_ly() %>%
-#     add_trace(x = ~PROD_REV, y = ~reorder(ITEMNAME_CHI, PROD_REV), type = "bar", orientation = 'h',
+#     add_trace(x = ~PROD_REV, y = ~reorder(ITEMID, PROD_REV), type = "bar", orientation = 'h',
 #               color = ~Brand, colors = setNames(c("yellow3", "black", "orange", "limegreen", "red3"), levels(~Brand)),
 #               text = ~PROD_REV_PCT, texttemplate = paste('%{x:$.2s} (%{text:.0%})'), textposition = 'outside',
 #               hovertemplate = paste('%{y}', '<br>Prod Rev: %{x:$,.0f}<br>')
 #     ) %>%
-#     add_trace(x = ~PROD_REV_CUM_PCT, y = ~reorder(ITEMNAME_CHI, PROD_REV_CUM_PCT), type = "scatter", mode = "lines+markers", name = "Accumulate %", xaxis = "x2",
+#     add_trace(x = ~PROD_REV_CUM_PCT, y = ~reorder(ITEMID, PROD_REV_CUM_PCT), type = "scatter", mode = "lines+markers", name = "Accumulate %", xaxis = "x2",
 #               color = I('rgba(255, 0, 0, 1)'),
 #               # marker = list(color = 'rgba(255, 0, 0, 1)',
 #               #               line = list(color = 'rgba(255, 0, 0, 0.9)')),
 #               hovertemplate = paste('%{y}', '<br>Prod Rev Cum %: %{x:.0%}<br>')) %>%
-#     add_trace(x = c(0, ~max(PROD_REV)*1.1), y = c(head(ytd$ITEMNAME_CHI[ytd$PROD_REV_CUM_PCT >= 0.8], 1), head(ytd$ITEMNAME_CHI[ytd$PROD_REV_CUM_PCT >= 0.8], 1)),
+#     add_trace(x = c(0, ~max(PROD_REV)*1.1), y = c(head(ytd$ITEMID[ytd$PROD_REV_CUM_PCT >= 0.8], 1), head(ytd$ITEMID[ytd$PROD_REV_CUM_PCT >= 0.8], 1)),
 #               type = 'scatter', mode = 'lines', line = list(color = 'blue', dash = "dash"), name = "At least 80%", hoverinfo='skip') %>%
-#     add_text(mode = "text", x = ~PROD_REV/2, y = ~reorder(ITEMNAME_CHI, PROD_REV), symbol = ~YOY_LABEL,
+#     add_text(mode = "text", x = ~PROD_REV/2, y = ~reorder(ITEMID, PROD_REV), symbol = ~YOY_LABEL,
 #              text = ~PROD_REV_YOY_PCT, texttemplate = paste(' %{text: .0%}'), textposition = "right",
 #              textfont = list(family = "sans serif", size = 14, color = toRGB("grey50")),
 #              hovertemplate = paste('%{y}', '<br>Prod Rev YOY %: %{text: .0%}<br>')
@@ -1412,18 +1412,18 @@ fig
 ######################################## Pareto : Product Revenue Portfolio Distribution ########################################
 temp_data <- rbind(
   raw_data_6 %>% 
-    group_by(Brand, SubBrand, ITEMNAME_CHI, YEAR, MONTH) %>%
+    group_by(Brand, SubBrand, ITEMID, YEAR, MONTH) %>%
     summarise(PROD_REV = sum(PROD_REV)
               ,PROD_QTY = sum(PROD_QTY)) %>% 
     mutate(CHANNEL = "Total: MNG + WTC")
   ,
   raw_data_6 %>% 
-    group_by(CHANNEL, Brand, SubBrand, ITEMNAME_CHI, YEAR, MONTH) %>% 
+    group_by(CHANNEL, Brand, SubBrand, ITEMID, YEAR, MONTH) %>% 
     summarise(PROD_REV = sum(PROD_REV)
               ,PROD_QTY = sum(PROD_QTY))
 ) %>% 
   mutate(CHANNEL = factor(CHANNEL, levels = c("Total: MNG + WTC", "MNG", "WTC"))
-         ,ITEMNAME_CHI = factor(ITEMNAME_CHI)) %>%
+         ,ITEMID = factor(ITEMID)) %>%
   mutate(MONTH_ABBR = factor(month.abb[MONTH],levels=month.abb)) %>% 
   filter(!Brand %in% c("DC Combo", "INMED", "VCM"))
 temp_data$Brand <- droplevels(temp_data$Brand)
@@ -1434,7 +1434,7 @@ yoy_and_mom <- lapply(list("PROD_REV", "PROD_QTY"), function(measure_value){
   # Monthly: YOY and MOM
   temp_data <- temp_data %>% 
     # YOY
-    group_by(CHANNEL, Brand, SubBrand, ITEMNAME_CHI, MONTH) %>%
+    group_by(CHANNEL, Brand, SubBrand, ITEMID, MONTH) %>%
     mutate(LAST_YEAR = ifelse((YEAR - lag(YEAR, 1)) > 1, NA, lag(YEAR, 1))
            ,measure_value_LAST_YEAR = ifelse((YEAR - lag(YEAR, 1)) > 1, NA, lag(get(measure_value), 1))
     ) %>% 
@@ -1443,7 +1443,7 @@ yoy_and_mom <- lapply(list("PROD_REV", "PROD_QTY"), function(measure_value){
            ,YOY_LABEL = factor(ifelse(get(measure_value) - measure_value_LAST_YEAR > 0, "Up", "Down"), levels = c("Up", "Down"))
     ) %>% 
     # MOM
-    group_by(CHANNEL, Brand, SubBrand, ITEMNAME_CHI) %>%
+    group_by(CHANNEL, Brand, SubBrand, ITEMID) %>%
     mutate(measure_value_LAST_MONTH =  lag(get(measure_value), 1)
            ,MOM = get(measure_value) - lag(get(measure_value), 1)
            ,MOM_PCT = get(measure_value)/lag(get(measure_value), 1)-1
@@ -1466,7 +1466,7 @@ rm(yoy_and_mom, join_key)
 # YTD Difference Data format: geom_point, geom_text
 ytd <- temp_data %>%
   filter(MONTH <= month(max(raw_data_6$DATE))) %>% 
-  group_by(CHANNEL, Brand, SubBrand, ITEMNAME_CHI, YEAR) %>% 
+  group_by(CHANNEL, Brand, SubBrand, ITEMID, YEAR) %>% 
   summarise(PROD_REV = sum(PROD_REV)
             ,PROD_QTY = sum(PROD_QTY)
             ,PROD_REV_LAST_YEAR = sum(PROD_REV_LAST_YEAR)
@@ -1495,31 +1495,31 @@ ytd <- temp_data %>%
 plot_pareto_YTD_prod_rev <- lapply(levels(temp_data$CHANNEL), function(i) {
   
   ytd <- ytd %>% filter(CHANNEL == i & YEAR == year(max(raw_data_6$DATE)) & PROD_REV != 0) %>% 
-    # Order ITEMNAME_CHI by YEAR, desc(PROD_REV), filtering YEAR will affect the order
+    # Order ITEMID by YEAR, desc(PROD_REV), filtering YEAR will affect the order
     ungroup() %>% 
     arrange(CHANNEL, YEAR, desc(PROD_REV)) %>%
-    mutate(ITEMNAME_CHI = factor(ITEMNAME_CHI, levels = unique(ITEMNAME_CHI))) %>% 
+    mutate(ITEMID = factor(ITEMID, levels = unique(ITEMID))) %>% 
     mutate(SubBrand = factor(SubBrand, levels = unique(SubBrand)))
-  ytd$ITEMNAME_CHI <- droplevels(ytd$ITEMNAME_CHI)
+  ytd$ITEMID <- droplevels(ytd$ITEMID)
   ytd$SubBrand <- droplevels(ytd$SubBrand)
   # ytd$YOY_LABEL <- droplevels(ytd$YOY_LABEL)
   
   # Add traces
   fig <- ytd %>% plot_ly() %>% 
-    add_trace(x = ~PROD_REV, y = ~reorder(ITEMNAME_CHI, PROD_REV), type = "bar", orientation = 'h',
+    add_trace(x = ~PROD_REV, y = ~reorder(ITEMID, PROD_REV), type = "bar", orientation = 'h',
               # color = ~Brand, colors = setNames(c("yellow3", "black", "orange", "limegreen", "red3"), levels(~Brand)),
               color = ~SubBrand, colors = setNames(as.character(paletteer_c("grDevices::rainbow", length(levels(~SubBrand)))), levels(~SubBrand)),
               text = ~PROD_REV_PCT, texttemplate = paste('%{x:$.2s} (%{text:.0%})'), textposition = 'outside',
               hovertemplate = paste('%{y}', '<br>Prod Rev: %{x:$,.0f}<br>')
     ) %>% 
-    add_trace(x = ~PROD_REV_CUM_PCT, y = ~reorder(ITEMNAME_CHI, PROD_REV_CUM_PCT), type = "scatter", mode = "lines+markers", name = "Accumulate %", xaxis = "x2",
+    add_trace(x = ~PROD_REV_CUM_PCT, y = ~reorder(ITEMID, PROD_REV_CUM_PCT), type = "scatter", mode = "lines+markers", name = "Accumulate %", xaxis = "x2",
               color = I('rgba(255, 0, 0, 1)'),
               # marker = list(color = 'rgba(255, 0, 0, 1)', 
               #               line = list(color = 'rgba(255, 0, 0, 0.9)')),
               hovertemplate = paste('%{y}', '<br>Prod Rev Cum %: %{x:.0%}<br>')) %>% 
-    add_trace(x = c(0, ~max(PROD_REV)*1.1), y = c(head(ytd$ITEMNAME_CHI[ytd$PROD_REV_CUM_PCT >= 0.8], 1), head(ytd$ITEMNAME_CHI[ytd$PROD_REV_CUM_PCT >= 0.8], 1)),
+    add_trace(x = c(0, ~max(PROD_REV)*1.1), y = c(head(ytd$ITEMID[ytd$PROD_REV_CUM_PCT >= 0.8], 1), head(ytd$ITEMID[ytd$PROD_REV_CUM_PCT >= 0.8], 1)),
               type = 'scatter', mode = 'lines', line = list(color = 'blue', dash = "dash"), name = "At least 80%", hoverinfo='skip') %>% 
-    add_text(mode = "text", x = ~PROD_REV/2, y = ~reorder(ITEMNAME_CHI, PROD_REV), symbol = ~YOY_LABEL,
+    add_text(mode = "text", x = ~PROD_REV/2, y = ~reorder(ITEMID, PROD_REV), symbol = ~YOY_LABEL,
              text = ~PROD_REV_YOY_PCT, texttemplate = paste(' %{text: .0%}'), textposition = "right",
              textfont = list(family = "sans serif", size = 14, color = toRGB("grey50")),
              hovertemplate = paste(ytd$SubBrand, '<br>%{y}<br>', '<br>Prod Rev YOY %: %{text: .0%}<br>')
@@ -1597,18 +1597,18 @@ plot_pareto_YTD_prod_rev <- lapply(levels(temp_data$CHANNEL), function(i) {
 ###------ PROD_REV and PROD_QTY ------###
 temp_data <- rbind(
   raw_data_6 %>%
-    group_by(Brand, ITEMNAME_CHI, YEAR, MONTH) %>%
+    group_by(Brand, ITEMID, YEAR, MONTH) %>%
     summarise(PROD_REV = sum(PROD_REV)
               ,PROD_QTY = sum(PROD_QTY)) %>%
     mutate(CHANNEL = "Total: MNG + WTC")
   ,
   raw_data_6 %>%
-    group_by(CHANNEL, Brand, ITEMNAME_CHI, YEAR, MONTH) %>%
+    group_by(CHANNEL, Brand, ITEMID, YEAR, MONTH) %>%
     summarise(PROD_REV = sum(PROD_REV)
               ,PROD_QTY = sum(PROD_QTY))
 ) %>%
   mutate(CHANNEL = factor(CHANNEL, levels = c("Total: MNG + WTC", "MNG", "WTC"))
-         ,ITEMNAME_CHI = factor(ITEMNAME_CHI)) %>%
+         ,ITEMID = factor(ITEMID)) %>%
   mutate(MONTH_ABBR = factor(month.abb[MONTH],levels=month.abb)) %>%
   filter(!Brand %in% c("DC Combo", "INMED", "VCM"))
 temp_data$Brand <- droplevels(temp_data$Brand)
@@ -1618,7 +1618,7 @@ yoy_and_mom <- lapply(list("PROD_REV", "PROD_QTY"), function(measure_value){
   # Monthly: YOY and MOM
   temp_data <- temp_data %>%
     # YOY
-    group_by(CHANNEL, Brand, ITEMNAME_CHI, MONTH) %>%
+    group_by(CHANNEL, Brand, ITEMID, MONTH) %>%
     mutate(LAST_YEAR = ifelse((YEAR - lag(YEAR, 1)) > 1, NA, lag(YEAR, 1))
            ,measure_value_LAST_YEAR = ifelse((YEAR - lag(YEAR, 1)) > 1, NA, lag(get(measure_value), 1))
     ) %>%
@@ -1627,7 +1627,7 @@ yoy_and_mom <- lapply(list("PROD_REV", "PROD_QTY"), function(measure_value){
            ,YOY_LABEL = factor(ifelse(get(measure_value) - measure_value_LAST_YEAR > 0, "Up", "Down"), levels = c("Up", "Down"))
     ) %>%
     # MOM
-    group_by(CHANNEL, Brand, ITEMNAME_CHI) %>%
+    group_by(CHANNEL, Brand, ITEMID) %>%
     mutate(measure_value_LAST_MONTH =  lag(get(measure_value), 1)
            ,MOM = get(measure_value) - lag(get(measure_value), 1)
            ,MOM_PCT = get(measure_value)/lag(get(measure_value), 1)-1
@@ -1650,7 +1650,7 @@ rm(yoy_and_mom, join_key)
 # YTD Difference Data format: geom_point, geom_text
 ytd <- temp_data %>%
   filter(MONTH <= month(max(raw_data_6$DATE))) %>%
-  group_by(CHANNEL, Brand, ITEMNAME_CHI, YEAR) %>%
+  group_by(CHANNEL, Brand, ITEMID, YEAR) %>%
   summarise(PROD_REV = sum(PROD_REV)
             ,PROD_QTY = sum(PROD_QTY)
             ,PROD_REV_LAST_YEAR = sum(PROD_REV_LAST_YEAR)
@@ -1671,7 +1671,7 @@ plot_YTD_prod_rev_qty <- ggplotly(shared_temp_data %>% ggplot(., aes(x = PROD_QT
                                                    , size = PROD_QTY
                                                    , shape = as.character(YEAR)
                                                    , alpha = 0.1
-                                                   , text = paste0("Product: ", "<i><b>",ITEMNAME_CHI,"</i></b>",
+                                                   , text = paste0("Product: ", "<i><b>",ITEMID,"</i></b>",
                                                                    "\nProd Rev: ", "<i><b>", label_dollar(accuracy = 1)(PROD_REV),"</i></b>", "\nProd Qty: ", "<i><b>", comma(PROD_QTY, accuracy = 1),"</i></b>",
                                                                    "\n\nYOY:\n",
                                                                    "<i><b>",label_dollar(accuracy = 1)(ytd$PROD_REV_YOY), " (",label_percent(accuracy = 1)(ytd$PROD_REV_YOY_PCT),")", "</i></b>\n",
@@ -1730,7 +1730,7 @@ plot_YTD_prod_rev_qty_change <- ggplotly(shared_temp_data %>% ggplot(., aes(x = 
                                                    # , size = PROD_QTY
                                                    , shape = as.character(YEAR)
                                                    , alpha = 0.1
-                                                   , text = paste0("Product: ", "<i><b>",ITEMNAME_CHI,"</i></b>",
+                                                   , text = paste0("Product: ", "<i><b>",ITEMID,"</i></b>",
                                                                    "\nProd Rev: ", "<i><b>", label_dollar(accuracy = 1)(PROD_REV),"</i></b>", "\nProd Qty: ", "<i><b>", comma(PROD_QTY, accuracy = 1),"</i></b>",
                                                                    "\n\nYOY:\n",
                                                                    "<i><b>",label_dollar(accuracy = 1)(ytd$PROD_REV_YOY), " (",label_percent(accuracy = 1)(ytd$PROD_REV_YOY_PCT),")", "</i></b>\n",
@@ -1782,7 +1782,7 @@ plot_YTD_prod_rev_qty_change_pct <- ggplotly(shared_temp_data %>% ggplot(., aes(
                                                            # , size = PROD_QTY
                                                            , shape = as.character(YEAR)
                                                            , alpha = 0.1
-                                                           , text = paste0("Product: ", "<i><b>",ITEMNAME_CHI,"</i></b>",
+                                                           , text = paste0("Product: ", "<i><b>",ITEMID,"</i></b>",
                                                                            "\nProd Rev: ", "<i><b>", label_dollar(accuracy = 1)(PROD_REV),"</i></b>", "\nProd Qty: ", "<i><b>", comma(PROD_QTY, accuracy = 1),"</i></b>",
                                                                            "\n\nYOY:\n",
                                                                            "<i><b>",label_dollar(accuracy = 1)(ytd$PROD_REV_YOY), " (",label_percent(accuracy = 1)(ytd$PROD_REV_YOY_PCT),")", "</i></b>\n",
@@ -1917,7 +1917,7 @@ formatStyle(columns = "PROD_QTY_YOY",
 shared_temp_data_selected
 
 # ggplotly(shared_temp_data_selected$data %>% ggplot(.
-#          , aes(x = YEAR, y = PROD_REV, color = ITEMNAME_CHI)) +
+#          , aes(x = YEAR, y = PROD_REV, color = ITEMID)) +
 #     geom_line(size = 1) +
 #     geom_point(size=2) +
 #     labs(title = paste0("Product Revenue($) Trend\n", "(Jan - ",months((floor_date(as.Date(gen_date), unit = "month") - 1), abbreviate = T),")")
@@ -1970,143 +1970,6 @@ function filter_default(){
 $(document).ready(filter_default);
 ```
 
-## Product Revenue Trend {.tabset .tabset-fade .tabset-pills}
-```{r}
-############################################################## By Product ##############################################################
-######################################## Product Revenue Trend ########################################
-# Time series Plot
-plot_time_series_prod <- function(ytd, temp_data, i, highlight_group_name) {
-  
-  legend_grp_filter_rank <- ytd %>% ungroup() %>% filter(CHANNEL == i & YEAR == max(YEAR)) %>% arrange(Brand, desc(PROD_REV)) %>% 
-    mutate(legend_grp_filter_rank = paste(Brand, "-", ITEMNAME_CHI)) %>% 
-    mutate(legend_grp_filter_rank = factor(legend_grp_filter_rank, levels = legend_grp_filter_rank)) %>% 
-    select(CHANNEL, Brand, ITEMNAME_CHI, legend_grp_filter_rank)
-  
-  temp_data <- temp_data %>% ungroup() %>% filter(CHANNEL == i) %>% 
-    mutate(DATE = as.Date(fast_strptime(paste0(YEAR,"-",MONTH), "%Y-%m", lt = FALSE))) %>% 
-    left_join(legend_grp_filter_rank, by = c("CHANNEL", "Brand", "ITEMNAME_CHI")) %>% 
-    arrange(legend_grp_filter_rank)
-  
-  temp_data <- data.table(temp_data)[is.na(legend_grp_filter_rank), legend_grp_filter_rank := paste(Brand, "-", ITEMNAME_CHI)]
-  
-  shared_temp_data <- temp_data %>% highlight_key(., ~ITEMNAME_CHI, group = highlight_group_name)
-  
-  ######################################## Product Revenue Trend ########################################
-  plot_time_series_prod <- ggplotly(shared_temp_data %>% 
-                                      ggplot(., aes(x = DATE, y = PROD_REV, color = legend_grp_filter_rank, group = legend_grp_filter_rank, text = paste0("Product: ", "<i><b>", legend_grp_filter_rank, "</i></b>", "\nDate: ", "<i><b>", DATE, "</i></b>", "\nProd Rev ", "<i><b>", label_dollar(accuracy = 1)(PROD_REV), "</i></b>"))) +
-                                      geom_point(size=2) +
-                                      geom_line(size = 1) +
-                                      # geom_smooth(method = "loess", formula = y ~ x, na.rm = T, alpha = 0.2, linetype = 5, size = 0.5) +
-                                      labs(title = paste0("Product Revenue Trend")
-                                           ,caption = "Data source: MNG + WTC"
-                                           , x = "Month"
-                                           , y = "Prod Rev") +
-                                      scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m", expand = expansion(mult = c(0, 0.05))) +
-                                      scale_y_continuous(labels = label_dollar(scale_cut = cut_short_scale())) +
-                                      theme_ben() +
-                                      theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
-                                    # scale_color_manual(drop = T, values = setNames(c("yellow3", "black", "orange", "limegreen", "red3"), levels(temp_data$ITEMNAME_CHI)))
-                                    # facet_wrap_paginate(~ CHANNEL, ncol = 1, nrow = 1, page = i) %>% 
-                                    , dynamicTicks = TRUE
-                                    , tooltip = c("text")
-  ) %>%
-    
-    config(displaylogo = FALSE, modeBarButtons = list(list("toImage"), list("hoverClosestCartesian"), list("hoverCompareCartesian"))) %>%
-    # highlight(., on = "plotly_hover", off = "plotly_doubleclick", selected = attrs_selected(showlegend = FALSE), selectize = TRUE
-    #           # , persistent = TRUE
-    # ) %>%
-    # theme_layout(caption = "Data source: MNG + WTC", caption_margin = 100) %>%
-    theme_layout(caption = "", caption_margin = 100) %>%
-    layout(
-      # legend = list(x = 0.05, y = 0.95),
-      xaxis = list(autorange = TRUE, hoverformat = "%Y-%m-%d"),
-      yaxis = list(autorange = TRUE, hoverformat = "$,.0f", tickformat = "$,.2s")
-    )
-    # adj_smooth_hovertext()
-  # style(traces = c(7,8,9), hoverinfo = "skip")
-  
-  ######################################## MOM: Product Revenue Trend ########################################
-  plot_time_series_prod_mom <- ggplotly(shared_temp_data %>% 
-                                          ggplot(., aes(x = DATE, y = PROD_REV_MOM_PCT, color = legend_grp_filter_rank, group = legend_grp_filter_rank
-                                                        , text = paste0("Product: ", "<i><b>", legend_grp_filter_rank, "</i></b>", "\nDate: ", "<i><b>", DATE, "</i></b>", "\nProd Rev ", "<i><b>", label_dollar(accuracy = 1)(PROD_REV), "</i></b>",
-                                                                        
-                                                                        "\n\nMOM:\n",
-                                                                        "<i><b>",label_dollar(accuracy = 1)(PROD_REV_MOM), " (",label_percent(accuracy = 1)(PROD_REV_MOM_PCT),")", "</i></b>\n")
-                                          )
-                                          ) +
-                                          geom_point(size=2) +
-                                          geom_line(size = 1) +
-                                          # geom_smooth(method = "loess", formula = y ~ x, na.rm = T, alpha = 0.2, linetype = 5, size = 0.5) +
-                                          labs(title = paste0("Product Revenue Trend")
-                                               ,caption = "Data source: MNG + WTC"
-                                               , x = "Month"
-                                               , y = "Prod Rev") +
-                                          scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m", expand = expansion(mult = c(0, 0.05))) +
-                                          scale_y_continuous(labels = label_percent()) +
-                                          theme_ben() +
-                                          theme(axis.text.x = element_text(angle = 45, vjust = 0.5))
-                                        # scale_color_manual(drop = T, values = setNames(c("yellow3", "black", "orange", "limegreen", "red3"), levels(temp_data$ITEMNAME_CHI)))
-                                        # facet_wrap_paginate(~ CHANNEL, ncol = 1, nrow = 1, page = i) %>% 
-                                        , dynamicTicks = TRUE
-                                        , tooltip = c("text")
-  ) %>%
-    
-    config(displaylogo = FALSE, modeBarButtons = list(list("toImage"), list("hoverClosestCartesian"), list("hoverCompareCartesian"))) %>%
-    # highlight(., on = "plotly_hover", off = "plotly_doubleclick", selected = attrs_selected(showlegend = FALSE), selectize = TRUE
-    #           # , persistent = TRUE
-    # ) %>%
-    theme_layout(caption = "", caption_margin = 100, y = -0.33) %>%
-    layout(
-      # legend = list(x = 0.05, y = 0.95),
-      xaxis = list(autorange = TRUE, hoverformat = "%Y-%m-%d"),
-      yaxis = list(autorange = TRUE, tickformat = ".0%")
-    )
-  
-  adj_legendgroup <- function(pp){
-    # Adjust legend name in ggplotly 
-    for (i in 1:length(pp$x$data)) {
-      # pp$x$data[[i]]$name <- str_extract(pp$x$data[[i]]$name, "[^\\(][^,]*")
-      pp$x$data[[i]]$legendgroup <- strsplit(pp$x$data[[i]]$legendgroup, " - ")[[1]][1]
-    }
-    return(pp)
-  }
-  
-  plot_combine <- subplot(plot_time_series_prod
-                          , plotly::style(plot_time_series_prod_mom, showlegend = FALSE) %>%
-                            layout(annotations = list(
-                              list(x = 0.5 , y = 1.03, text = "MOM", showarrow = F, xref='paper', yref='paper'))
-                            )
-                          , nrows = 2, heights = c(0.7, 0.3), titleY = TRUE, shareX = TRUE, margin = 0.03) %>% 
-    # config(displaylogo = FALSE, modeBarButtons = list(list("toImage"), list("hoverClosestCartesian"), list("hoverCompareCartesian"))) %>%
-    highlight(., on = "plotly_click", off = "plotly_doubleclick", selected = attrs_selected(showlegend = FALSE), selectize = TRUE
-              , persistent = TRUE
-    ) %>%
-    adj_legendgroup
-  
-  # plot_time_series_prod <- plot_time_series_prod %>% adj_legendgroup
-  # 
-  # plot_time_series_prod_mom <- plot_time_series_prod_mom %>% adj_legendgroup
-  
-  # return(list(plot_time_series_prod, plot_time_series_prod_mom))
-  return(plot_combine)
-}
-```
-
-### Total: MNG + WTC
-```{r fig.asp = 1, fig.width = 15, out.width = "100%"}
-plot_time_series_prod(ytd, temp_data, "Total: MNG + WTC", "ITEMNAME_CHI")
-```
-### MNG
-```{r fig.asp = 1, fig.width = 15, out.width = "100%"}
-# ```{r fig.asp = 0.8, fig.width = 15, out.width = "100%"}
-# ```{r fig.asp = 1.3, fig.width = 9}
-plot_time_series_prod(ytd, temp_data, "MNG", "ITEMNAME_CHI ")
-```
-### WTC
-```{r fig.asp = 1, fig.width = 15, out.width = "100%", results='asis'}
-plot_time_series_prod(ytd, temp_data, "WTC", "ITEMNAME_CHI  ")
-```
-
 ## Correlation Product Revenue
 ```{r fig.asp = 0.8, fig.width = 18, out.width = "100%"}
 ############################################################## By Product ##############################################################
@@ -2114,18 +1977,18 @@ plot_time_series_prod(ytd, temp_data, "WTC", "ITEMNAME_CHI  ")
 ###------ PROD_REV and PROD_QTY ------###
 # temp_data <- rbind(
 #   raw_data_6 %>%
-#     group_by(Brand, ITEMNAME_CHI, YEAR, MONTH) %>%
+#     group_by(Brand, ITEMID, YEAR, MONTH) %>%
 #     summarise(PROD_REV = sum(PROD_REV)
 #               ,PROD_QTY = sum(PROD_QTY)) %>%
 #     mutate(CHANNEL = "Total: MNG + WTC")
 #   ,
 #   raw_data_6 %>%
-#     group_by(CHANNEL, Brand, ITEMNAME_CHI, YEAR, MONTH) %>%
+#     group_by(CHANNEL, Brand, ITEMID, YEAR, MONTH) %>%
 #     summarise(PROD_REV = sum(PROD_REV)
 #               ,PROD_QTY = sum(PROD_QTY))
 # ) %>%
 #   mutate(CHANNEL = factor(CHANNEL, levels = c("Total: MNG + WTC", "MNG", "WTC"))
-#          ,ITEMNAME_CHI = factor(ITEMNAME_CHI)) %>%
+#          ,ITEMID = factor(ITEMID)) %>%
 #   mutate(MONTH_ABBR = factor(month.abb[MONTH],levels=month.abb)) %>%
 #   filter(!Brand %in% c("DC Combo", "INMED", "VCM"))
 # temp_data$Brand <- droplevels(temp_data$Brand)
@@ -2136,12 +1999,12 @@ plot_time_series_prod(ytd, temp_data, "WTC", "ITEMNAME_CHI  ")
 #   mutate(MEASURES = "PROD_QTY")
 
 temp_data <- raw_data_6 %>%
-  mutate(ITEMNAME_CHI = trimws(ITEMNAME_CHI)) %>%  #After revised raw_data_6, remove code line
-  distinct(CHANNEL, DATE, ITEMNAME_CHI, .keep_all = T) %>%   #After revised raw_data_6, remove code line
-  select(CHANNEL, DATE, ITEMNAME_CHI, PROD_REV) %>%      #After revised raw_data_6, remove code line
-  group_by(DATE, ITEMNAME_CHI) %>%
+  mutate(ITEMID = trimws(ITEMID)) %>%  #After revised raw_data_6, remove code line
+  distinct(CHANNEL, DATE, ITEMID, .keep_all = T) %>%   #After revised raw_data_6, remove code line
+  select(CHANNEL, DATE, ITEMID, PROD_REV) %>%      #After revised raw_data_6, remove code line
+  group_by(DATE, ITEMID) %>%
   summarise(PROD_REV = sum(PROD_REV)) %>%
-  pivot_wider(names_from = ITEMNAME_CHI, values_from = PROD_REV, values_fill = 0) %>%
+  pivot_wider(names_from = ITEMID, values_from = PROD_REV, values_fill = 0) %>%
   filter(DATE != as.Date("2023-09-01")) %>% # If monthly data not available at the month start then use this to exclude last row
   select_if(~ !is.numeric(.) || sum(tail(., 6)==0) < 1) # consecutive 6 months have sales recently
   # select_if(~ !is.numeric(.) || sum(.) < 10000)
@@ -2149,8 +2012,8 @@ temp_data <- raw_data_6 %>%
 ######## Format Corr ########
 # Order by PROD_REV, that would be useful for axis's ordering
 heatmaply_side_colors <- raw_data_6 %>%
-  mutate(ITEMNAME_CHI = trimws(ITEMNAME_CHI)) %>% #After revised raw_data_6, remove code line
-  group_by(Brand, ITEMNAME_CHI) %>%
+  mutate(ITEMID = trimws(ITEMID)) %>% #After revised raw_data_6, remove code line
+  group_by(Brand, ITEMID) %>%
   summarise(PROD_REV = sum(PROD_REV)) %>%
   ungroup() %>%
   arrange(desc(PROD_REV)) %>%
@@ -2171,7 +2034,7 @@ corr_df <- corr_df %>% filter((abs(CORR) >= 0.5) & P_VALUE < 0.05) %>%
   filter(sum(abs(CORR)) > 1) %>%
   # maintain the order while transfer from data frame to matrix
   ungroup() %>%
-  left_join(select(heatmaply_side_colors, ITEMNAME_CHI, RANK), by = c("Var1" = "ITEMNAME_CHI")) %>%
+  left_join(select(heatmaply_side_colors, ITEMID, RANK), by = c("Var1" = "ITEMID")) %>%
   arrange(RANK) %>%
   mutate(Var1 = factor(Var1, levels = unique(Var1)),
          Var2 = factor(Var2, levels = unique(Var1)))
@@ -2193,9 +2056,9 @@ upper_tri_corr <- get_upper_tri(corr_df_filtered)
 upper_tri_p <- get_upper_tri(testresult_df_filtered)
 
 upper_tri_corr <- upper_tri_corr %>% as.data.frame(row.names = rownames(upper_tri_corr)) %>%
-  mutate(ITEMNAME_CHI = row.names(.)) %>%
-  left_join(select(heatmaply_side_colors, Brand, ITEMNAME_CHI, PROD_REV), by = "ITEMNAME_CHI") %>%
-  tibble::column_to_rownames("ITEMNAME_CHI")
+  mutate(ITEMID = row.names(.)) %>%
+  left_join(select(heatmaply_side_colors, Brand, ITEMID, PROD_REV), by = "ITEMID") %>%
+  tibble::column_to_rownames("ITEMID")
 
 upper_tri_corr$Brand <- droplevels(upper_tri_corr$Brand)
 
