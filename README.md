@@ -1,4 +1,4 @@
-# SalesDash
+# Product Channel Sales Analysis
 
 Method 1: Click the link to view: [Product Channel Sales Analysis](https://lai-ai-bi-ci.github.io/Product_Channel_Sales_Analysis/)
 
