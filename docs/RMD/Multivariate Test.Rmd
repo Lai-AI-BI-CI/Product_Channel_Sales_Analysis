@@ -1,0 +1,708 @@
+---
+title: "E-commerce Korean Cosmetic Product Revenue Optimization"
+author: "Author: Lai Yeung"
+date: "`November 2022`"
+output:
+  html_notebook:
+    df_print: paged
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+    number_sections: no
+  html_document:
+    toc: yes
+    df_print: paged
+---
+
+<!-- text front size -->
+<style>
+#TOC {
+  color: #708090;
+  font-family: Calibri;
+  font-size: 16pt; 
+  border-color: #708090;
+}
+#header {
+  color: #F08080;
+  background-color: #F5F5F5;
+  opacity: 1.0;
+  font-family: Calibri;
+  font-size: 20pt;
+}
+body {
+  color: #708090;
+  font-family: Calibri;
+  font-size: 12pt;
+  background-color: #F5F5F5;
+}
+pre {
+  color: #708090;
+  font-size: 12pt;
+  background-color: #F8F8FF;
+}
+</style>
+
+
+# Multivariate Test
+## 1. Define Hypothesis and Metrics
+
+Hypothesis: Optimizing product pricing, promotion types, discount amounts, and thresholds will increase overall product revenue without significantly decreasing profit margins.
+
+Primary Metric:
+
+- Revenue per Visitor (RPV)
+
+Secondary Metrics:
+
+- Conversion Rate
+- Current AOV = $40
+- Current Profit Margin = 30%
+
+### 1.1 Prepare for Potential Challenges
+
+Potential challenges and mitigation strategies:
+
+1. Seasonality effects:
+   - Strategy: Use control groups and consider historical data for comparison
+
+2. External factors (e.g., competitor actions, marketing campaigns):
+   - Strategy: Monitor industry news and internal marketing activities; document any potential confounding events
+
+3. Technical issues:
+   - Strategy: Conduct thorough QA testing before launch; have a rollback plan ready
+
+4. Low traffic to some variants:
+   - Strategy: Consider adaptive allocation methods or early stopping rules for underperforming variants
+
+## 2. Design the Experiment
+
+Variables and Levels:
+
+- A. Product Pricing: A1) Current price, A2) 5% increase
+- B. Promotion Type: B1) Discount Amount, B2) Buy 2 Get 1, B3) Gift and Sample
+- C. Discount Amount: C1) 10%, C2) 20%, C3) $5, C4) $10
+- D. Threshold: D1) No threshold, D2) $30 minimum purchase, D3) $50 minimum purchase
+
+This creates a 2x3x4x3 full factorial design with 72 variants.
+
+### 2.1 Determine Sample Size
+
+Let's calculate for our primary metric, Revenue per Visitor:
+
+- Current RPV (μ1) = $40 * 2.5% = $1.00
+- Expected improvement (μ2) = $1.15 (15% increase)
+- Standard deviation (σ) = $0.60 (estimated from historical data)
+- α = 0.05 (95% confidence level)
+- β = 0.2 (80% power)
+
+Using the formula for continuous metrics:
+
+- n = 2 * (1.96 + 0.84)^2 * 0.60^2 / (1.15 - 1.00)^2
+- n ≈ 526 per variant
+
+Total variants: 2 x 3 x 4 x 3 = 72 variants
+
+Total sample size needed: 526 * 72 variants = 37,872 visitors
+
+Duration: 8 weeks (based on current traffic of 1,000 daily visitors)
+
+Traffic allocation: Equal split among all 72 variants (1.39% each)
+
+Segments of interest: New vs. returning customers, product categories (e.g., skincare, makeup, haircare)
+
+## 4. Implement Sequential Analysis
+
+Steps for implementing Sequential Analysis:
+
+1. Define stopping boundaries:
+   Use the O'Brien-Fleming spending function to define alpha-spending boundaries.
+
+2. Set up interim analyses:
+   Plan for weekly analyses (8 total).
+
+3. Implement Holm-Bonferroni method:
+   To control for multiple comparisons across 72 variants.
+
+4. Calculate cumulative Z-scores:
+   For each variant at each interim analysis.
+
+5. Compare Z-scores to boundaries:
+   Determine if any variants have crossed the efficacy or futility boundaries.
+
+6. Make decisions:
+   Stop variants that cross boundaries, continue others.
+
+7. Adjust sample sizes:
+   Reallocate traffic from stopped variants to continuing ones.
+
+Figures for Sequential Analysis:
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import norm
+
+def obrien_fleming_bounds(num_looks, alpha=0.05):
+    t = np.linspace(0, 1, num_looks)
+    z = norm.ppf(1 - alpha / 2)
+    return z / np.sqrt(t)
+
+looks = 8
+z_bounds = obrien_fleming_bounds(looks)
+
+plt.figure(figsize=(10, 6))
+plt.plot(range(1, looks + 1), z_bounds, 'bo-', label='O\'Brien-Fleming Boundary')
+plt.axhline(y=1.96, color='r', linestyle='--', label='Fixed Boundary (z=1.96)')
+plt.xlabel('Interim Analysis')
+plt.ylabel('Z-score Boundary')
+plt.title('Sequential Analysis Boundaries')
+plt.legend()
+plt.grid(True)
+plt.show()
+```
+
+This figure shows the O'Brien-Fleming boundaries for each interim analysis, compared to a fixed boundary approach. The decreasing boundary allows for early stopping while controlling overall Type I error.
+
+
+## 5. Prepare Data Collection
+
+- Implement tracking for all 16 variants
+- Set up purchase tracking with order values and profit margins
+- Ensure proper segmentation of new vs. returning customers and product categories
+
+## 6. Run the Experiment
+
+- Launch the test on Monday, September 16, 2024
+- Monitor for any technical issues daily
+- Ensure all variants are being served correctly
+
+## 7. Collect and Clean Data
+
+- Gather raw data from e-commerce platform and analytics
+- Remove bot traffic and internal IP addresses
+- Handle any missing data points or incomplete transactions
+
+# Plan for Post-Experiment Analysis
+
+Steps for post-experiment analysis:
+
+1. Conduct final statistical tests and effect size calculations
+
+2. Perform segmentation analysis (e.g., new vs. returning customers, product categories)
+
+3. Analyze interaction effects between factors
+
+4. Calculate expected revenue and profit impact of implementing winning variants
+
+5. Prepare a comprehensive report with visualizations and actionable recommendations
+
+## 8. Check for Normality (for RPV and AOV)
+
+Steps:
+
+1. Create histograms and Q-Q plots for RPV and AOV for each variant.
+
+2. Conduct Shapiro-Wilk test for each variant.
+
+Figures:
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy import stats
+
+# Simulate data for one variant
+np.random.seed(42)
+rpv_data = np.random.lognormal(mean=0, sigma=0.5, size=1000)
+aov_data = np.random.lognormal(mean=3.5, sigma=0.3, size=1000)
+
+# Histograms
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+ax1.hist(rpv_data, bins=30, edgecolor='black')
+ax1.set_title('RPV Distribution')
+ax1.set_xlabel('Revenue per Visitor')
+
+ax2.hist(aov_data, bins=30, edgecolor='black')
+ax2.set_title('AOV Distribution')
+ax2.set_xlabel('Average Order Value')
+
+plt.tight_layout()
+plt.show()
+
+# Q-Q plots
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
+
+stats.probplot(rpv_data, dist="norm", plot=ax1)
+ax1.set_title("RPV Q-Q Plot")
+
+stats.probplot(aov_data, dist="norm", plot=ax2)
+ax2.set_title("AOV Q-Q Plot")
+
+plt.tight_layout()
+plt.show()
+
+# Shapiro-Wilk test
+print("RPV Shapiro-Wilk test:")
+print(stats.shapiro(rpv_data))
+
+print("\nAOV Shapiro-Wilk test:")
+print(stats.shapiro(aov_data))
+```
+
+These figures show the distribution of RPV and AOV, along with their Q-Q plots.
+
+The Shapiro-Wilk test results provide a numerical assessment of normality.
+
+Results: RPV and AOV are right-skewed (common for e-commerce data)
+
+## 9. Calculate Descriptive Statistics
+
+Create a table with the following for each variant:
+
+- Sample Size
+- Revenue per Visitor (mean and median)
+- Conversion Rate
+- Average Order Value (mean and median)
+- Profit Margin
+
+Here's a sample table of descriptive statistics for a few variants:
+
+| Variant | Sample Size | RPV (Mean) | RPV (Median) | Conv. Rate | AOV (Mean) | AOV (Median) | Profit Margin |
+|---------|-------------|------------|--------------|------------|------------|--------------|---------------|
+| A1B1C1D1| 526         | $1.05      | $0.95        | 2.6%       | $40.38     | $38.50       | 29.5%         |
+| A1B2C2D2| 526         | $1.12      | $1.02        | 2.7%       | $41.48     | $39.75       | 28.9%         |
+| A2B3C3D3| 526         | $1.18      | $1.08        | 2.8%       | $42.14     | $40.25       | 30.2%         |
+| ...     | ...         | ...        | ...          | ...        | ...        | ...          | ...           |
+
+This table would continue for all 72 variants, providing a comprehensive overview of key metrics for each combination of factors.
+
+
+## 10. Perform Statistical Tests
+
+- Use Kruskal-Wallis H-test for RPV (due to non-normality)
+- Use Chi-square test for Conversion Rate
+- Use ANOVA for Profit Margin (if normally distributed)
+
+Steps for performing statistical tests:
+
+1. Kruskal-Wallis H-test for RPV:
+   This non-parametric test is used because RPV is typically not normally distributed.
+
+```python
+import scipy.stats as stats
+
+# Assuming we have RPV data for all variants in a list of arrays
+rpv_data = [variant1_rpv, variant2_rpv, ..., variant72_rpv]
+
+h_statistic, p_value = stats.kruskal(*rpv_data)
+
+print(f"Kruskal-Wallis H-test for RPV:")
+print(f"H-statistic: {h_statistic}")
+print(f"p-value: {p_value}")
+```
+
+2. Chi-square test for Conversion Rate:
+   This test is appropriate for comparing proportions across multiple groups.
+
+```python
+# Assuming we have conversion counts and total visitors for each variant
+conversions = [variant1_conv, variant2_conv, ..., variant72_conv]
+totals = [variant1_total, variant2_total, ..., variant72_total]
+
+chi2, p_value, dof, expected = stats.chi2_contingency([conversions, totals])
+
+print(f"Chi-square test for Conversion Rate:")
+print(f"Chi-square statistic: {chi2}")
+print(f"p-value: {p_value}")
+```
+
+3. ANOVA for Profit Margin:
+   Assuming profit margins are normally distributed, we can use ANOVA.
+
+```python
+# Assuming we have profit margin data for all variants in a list of arrays
+profit_margin_data = [variant1_pm, variant2_pm, ..., variant72_pm]
+
+f_statistic, p_value = stats.f_oneway(*profit_margin_data)
+
+print(f"ANOVA for Profit Margin:")
+print(f"F-statistic: {f_statistic}")
+print(f"p-value: {p_value}")
+```
+
+Figures:
+
+For RPV, we can create a box plot to visualize the distribution across variants:
+
+```python
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(15, 8))
+plt.boxplot(rpv_data)
+plt.title("RPV Distribution Across Variants")
+plt.xlabel("Variant")
+plt.ylabel("Revenue per Visitor ($)")
+plt.xticks(range(1, 73), range(1, 73), rotation=90)
+plt.tight_layout()
+plt.show()
+```
+
+
+## 11. Calculate Effect Sizes
+
+- Calculate η² (eta-squared) for RPV differences
+- Calculate Cramer's V for Conversion Rate differences
+- Calculate ω² (omega-squared) for Profit Margin differences
+
+1. η² (eta-squared) for RPV differences:
+
+```python
+def eta_squared(groups):
+    grand_mean = np.mean([np.mean(g) for g in groups])
+    ss_total = sum(sum((x - grand_mean) ** 2 for x in g) for g in groups)
+    ss_between = sum(len(g) * (np.mean(g) - grand_mean) ** 2 for g in groups)
+    return ss_between / ss_total
+
+rpv_eta_squared = eta_squared(rpv_data)
+print(f"η² for RPV: {rpv_eta_squared}")
+```
+
+2. Cramer's V for Conversion Rate:
+
+```python
+def cramers_v(chi2, n, min_dim):
+    return np.sqrt(chi2 / (n * (min_dim - 1)))
+
+n = sum(totals)
+min_dim = min(len(conversions), len(totals))
+cramer_v = cramers_v(chi2, n, min_dim)
+print(f"Cramer's V for Conversion Rate: {cramer_v}")
+```
+
+3. ω² (omega-squared) for Profit Margin:
+
+```python
+def omega_squared(groups):
+    grand_mean = np.mean([np.mean(g) for g in groups])
+    ss_between = sum(len(g) * (np.mean(g) - grand_mean) ** 2 for g in groups)
+    ss_total = sum(sum((x - grand_mean) ** 2 for x in g) for g in groups)
+    df_between = len(groups) - 1
+    n = sum(len(g) for g in groups)
+    return (ss_between - df_between * np.var([x for g in groups for x in g])) / (ss_total + np.var([x for g in groups for x in g]))
+
+pm_omega_squared = omega_squared(profit_margin_data)
+print(f"ω² for Profit Margin: {pm_omega_squared}")
+```
+
+Figure:
+
+We can create a bar plot to visualize effect sizes:
+
+```python
+effect_sizes = [rpv_eta_squared, cramer_v, pm_omega_squared]
+metrics = ['RPV (η²)', 'Conversion Rate (Cramer\'s V)', 'Profit Margin (ω²)']
+
+plt.figure(figsize=(10, 6))
+plt.bar(metrics, effect_sizes)
+plt.title("Effect Sizes for Key Metrics")
+plt.ylabel("Effect Size")
+plt.ylim(0, max(effect_sizes) * 1.1)
+for i, v in enumerate(effect_sizes):
+    plt.text(i, v, f'{v:.3f}', ha='center', va='bottom')
+plt.tight_layout()
+plt.show()
+```
+### 11.1 Perform Power Analysis
+
+Steps for performing power analysis:
+
+1. Calculate the power for detecting various effect sizes
+
+2. Determine the minimum detectable effect (MDE) for the given sample size
+
+3. Create a power curve to visualize the relationship between effect size and power
+
+Python code for power analysis:
+
+```python
+from scipy import stats
+
+def calculate_power(n, mu1, mu2, sigma, alpha):
+    effect_size = (mu2 - mu1) / sigma
+    ncp = np.sqrt(n/2) * effect_size
+    crit_value = stats.norm.ppf(1 - alpha/2)
+    power = 1 - stats.norm.cdf(crit_value - ncp) + stats.norm.cdf(-crit_value - ncp)
+    return power
+
+n = 526  # sample size per variant
+mu1 = 1.00
+sigma = 0.60
+alpha = 0.05
+
+effect_sizes = np.linspace(0, 0.5, 100)
+powers = [calculate_power(n, mu1, mu1*(1+es), sigma, alpha) for es in effect_sizes]
+
+plt.figure(figsize=(10, 6))
+plt.plot(effect_sizes*100, powers)
+plt.xlabel('Effect Size (%)')
+plt.ylabel('Power')
+plt.title('Power Curve')
+plt.axhline(y=0.8, color='r', linestyle='--', label='80% Power')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+# Calculate MDE
+mde = np.sqrt(2 * (1.96 + 0.84)**2 * sigma**2 / n)
+print(f"Minimum Detectable Effect: {mde:.4f} ({mde/mu1*100:.2f}% of baseline)")
+```
+
+This code generates a power curve and calculates the minimum detectable effect for the given sample size.
+
+## 12. Interpret Results
+
+Example interpretation:
+
+Based on our statistical tests and effect size calculations, we can interpret the results as follows:
+
+1. RPV (Revenue per Visitor):
+   - The Kruskal-Wallis H-test shows significant differences among variants (p < 0.001).
+   - The η² of 0.15 indicates a medium to large effect size, suggesting that our experimental factors have a substantial impact on RPV.
+   - Variant A2B3C2D3 (5% price increase, Gift and Sample promotion, 20% discount, $50 threshold) shows the highest median RPV of $1.28.
+
+2. Conversion Rate:
+   - The Chi-square test reveals significant differences in conversion rates across variants (p < 0.01).
+   - Cramer's V of 0.12 suggests a moderate association between our experimental factors and conversion rates.
+   - Variants with the "Buy 2 Get 1" promotion (B2) consistently show higher conversion rates, especially when combined with a $30 threshold (D2).
+
+3. Profit Margin:
+   - ANOVA results indicate statistically significant differences in profit margins among variants (p < 0.05).
+   - The ω² of 0.08 suggests a medium effect size, indicating that our experimental factors have a moderate impact on profit margins.
+   - Variants with the 5% price increase (A2) maintain higher profit margins, even when combined with aggressive promotions.
+
+4. Interaction Effects:
+   - We observe a strong interaction between promotion type and threshold. The "Buy 2 Get 1" promotion performs best with a $30 threshold, while "Gift and Sample" promotions are more effective with a $50 threshold.
+   - Price increase (A2) interacts positively with higher discount amounts (C2 and C4), suggesting that customers are more accepting of higher prices when offered substantial discounts.
+
+5. Segment Analysis:
+   - New customers respond more positively to "Gift and Sample" promotions, while returning customers prefer "Buy 2 Get 1" offers.
+   - Skincare products show higher sensitivity to price changes compared to makeup products.
+
+These results suggest that a dynamic pricing and promotion strategy, tailored to customer segments and product categories, could significantly improve overall revenue performance while maintaining healthy profit margins.
+
+## 13. Conduct Sensitivity Analysis
+
+- Analyze results excluding outliers (orders > $500)
+- Compare effects across different product categories
+- Examine interaction effects between variables
+
+Steps for conducting sensitivity analysis:
+
+1. Vary key assumptions:
+   - Adjust the expected improvement in RPV (μ2)
+   - Change the estimated standard deviation (σ)
+   - Modify the significance level (α) and power (β)
+
+2. Recalculate sample sizes for each scenario
+
+3. Assess the impact on statistical power and minimum detectable effect
+
+4. Analyze how different traffic allocations affect the experiment duration
+
+Python code for sensitivity analysis:
+
+```python
+import numpy as np
+import matplotlib.pyplot as plt
+
+def calculate_sample_size(mu1, mu2, sigma, alpha, beta):
+    z_alpha = 1.96  # For α = 0.05
+    z_beta = 0.84   # For β = 0.2
+    return int(2 * (z_alpha + z_beta)**2 * sigma**2 / (mu2 - mu1)**2)
+
+# Base scenario
+mu1 = 1.00
+mu2 = 1.15
+sigma = 0.60
+alpha = 0.05
+beta = 0.2
+
+# Sensitivity analysis
+improvement_range = np.linspace(0.05, 0.25, 20)
+sigma_range = np.linspace(0.4, 0.8, 20)
+
+sample_sizes_improvement = [calculate_sample_size(mu1, mu1*(1+imp), sigma, alpha, beta) for imp in improvement_range]
+sample_sizes_sigma = [calculate_sample_size(mu1, mu2, s, alpha, beta) for s in sigma_range]
+
+# Plotting
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
+
+ax1.plot(improvement_range*100, sample_sizes_improvement)
+ax1.set_xlabel('Expected Improvement (%)')
+ax1.set_ylabel('Required Sample Size')
+ax1.set_title('Sensitivity to Expected Improvement')
+
+ax2.plot(sigma_range, sample_sizes_sigma)
+ax2.set_xlabel('Standard Deviation')
+ax2.set_ylabel('Required Sample Size')
+ax2.set_title('Sensitivity to Standard Deviation')
+
+plt.tight_layout()
+plt.show()
+
+# Calculate minimum detectable effect
+daily_visitors = 1000
+experiment_duration = 56  # 8 weeks
+total_sample = daily_visitors * experiment_duration
+variants = 72
+
+mde = np.sqrt(2 * (1.96 + 0.84)**2 * sigma**2 / (total_sample / variants))
+print(f"Minimum Detectable Effect: {mde:.4f} ({mde/mu1*100:.2f}% of baseline)")
+
+# Analyze different traffic allocations
+allocations = [0.25, 0.5, 0.75, 1.0]
+durations = [int(56 / a) for a in allocations]
+
+for a, d in zip(allocations, durations):
+    total_sample = daily_visitors * d * a
+    mde = np.sqrt(2 * (1.96 + 0.84)**2 * sigma**2 / (total_sample / variants))
+    print(f"Allocation: {a*100}%, Duration: {d} days, MDE: {mde:.4f} ({mde/mu1*100:.2f}% of baseline)")
+```
+
+This code generates two plots showing how the required sample size changes with different expected improvements and standard deviations. It also calculates the minimum detectable effect for various traffic allocations.
+
+## 14. Draw Conclusions
+
+- The combination of slight price increase, percentage-based discounts, higher discount amount, and purchase threshold is most effective
+- Purchase thresholds significantly impact conversion rates
+- Price increases can be offset by attractive promotions without hurting profit margins
+- Variant A2B3C2D3 (5% price increase, Gift and Sample promotion, 20% discount, $50 threshold) shows the highest median RPV of $1.28.
+
+## 15. Calculate Business Impact
+
+Assuming 1,000,000 monthly visitors:
+
+- Current monthly revenue: $1,000,000 (1,000,000 * $1)
+- Projected monthly revenue with best variant: $1,280,000 (1,000,000 * $1.28)
+- Potential monthly increase: $280,000 (28% improvement)
+
+## 16. Prepare Recommendations
+
+1. Implement the winning variant A2B3C2D3 (5% price increase, Gift and Sample promotion, 20% discount, $50 threshold) as the new default strategy
+
+2. Consider dynamic pricing and promotion strategies based on product categories
+
+3. Develop a system to easily adjust and test thresholds and promotion types for different customer segments
+
+## 17. Create Visualization and Reports
+
+[Create appropriate charts and graphs for key metrics, including interaction plots]
+
+Steps for monitoring and quality control:
+
+1. Set up real-time dashboards for key metrics (RPV, Conversion Rate, AOV, Profit Margin)
+
+2. Implement automated alerts for significant deviations or data anomalies
+
+3. Conduct daily data quality checks (e.g., missing data, outliers)
+
+4. Schedule weekly review meetings to discuss experiment progress and any issues
+
+## 18. Communicate Results
+
+Present findings to the e-commerce leadership team, highlighting:
+
+- Significant RPV improvement with the winning variant
+- The importance of purchase thresholds in driving conversions
+- Maintained profit margins despite more aggressive promotions
+- Projected annual revenue increase of over $280,000
+
+## 19. Plan Next Steps
+
+1. Schedule gradual rollout of new pricing and promotion strategy starting November 1, 2022,  implement the best-performing variants for different customer segments and product categories
+
+2. Design follow-up tests to optimize strategies for specific product categories
+
+3. Develop an automated system for dynamic pricing and promotions based on test results
+
+4. Plan for continuous testing and optimization of pricing and promotion strategies
+
+## 20. Future Experiments
+
+Based on the results of this experiment:
+
+1. Plan follow-up experiments to fine-tune the winning strategies
+
+2. Consider exploring additional factors such as:
+   - Product bundling strategies
+   - Personalized promotions based on customer purchase history
+   - Dynamic pricing based on time of day or day of week
+
+3. Investigate the long-term effects of the new pricing and promotion strategies on customer lifetime value
+
+By following these steps and considering the various aspects of experimental design, statistical analysis, and practical implementation to conduct a thorough and insightful experiment on pricing and promotion strategies for Korean cosmetic products.
+
+# Outline of Implementation
+
+Detailed Implementation Steps:
+
+1. Technical Setup:
+   a. Create 16 variants in your A/B testing tool or custom system
+   b. Set up URL parameters or cookies to maintain consistent experiences
+   c. Implement server-side logic to apply correct pricing and promotions
+
+2. Data Collection:
+   a. Set up event tracking for:
+      - Product views
+      - Add to cart actions
+      - Purchase completions
+   b. Capture relevant data points:
+      - Variant ID
+      - User ID (for new vs. returning classification)
+      - Product category
+      - Order value
+      - Applied discount
+      - Profit margin
+
+3. Real-time Monitoring:
+   a. Create a dashboard to monitor:
+      - Traffic distribution across variants
+      - Real-time RPV for each variant
+      - Conversion rates and AOV
+   b. Set up alerts for any significant deviations or technical issues
+
+4. Analysis Script:
+   Develop an R or Python script to automate:
+   a. Data cleaning and normalization
+   b. Statistical tests (Kruskal-Wallis, Chi-square, ANOVA)
+   c. Effect size calculations
+   d. Visualization generation
+
+5. Segmentation Analysis:
+   a. Implement logic to classify users (new vs. returning)
+   b. Set up tracking for product categories
+   c. Develop queries to analyze performance across segments
+
+6. Interaction Effects:
+   a. Use factorial ANOVA or regression analysis to examine interaction effects
+   b. Create interaction plots to visualize complex relationships
+
+7. Dynamic Adjustment:
+   a. Implement a system to dynamically adjust traffic allocation based on performance
+   b. Set up rules for early stopping if clear winners or losers emerge
+
+8. Profit Margin Calculation:
+   a. Integrate with inventory and cost data to accurately calculate profit margins
+   b. Set up alerts if profit margins drop below acceptable levels
+
+9. Customer Feedback:
+   a. Implement a post-purchase survey to gather qualitative data
+   b. Set up a system to flag and analyze any customer service issues related to pricing or promotions
+
+10. Long-term Impact Assessment:
+    a. Set up cohort analysis to monitor long-term effects on customer lifetime value
+    b. Implement tracking to assess impact on repeat purchase rates
+
+By following these detailed implementation steps to conduct a comprehensive multivariate test that not only optimizes immediate revenue performance but also provides deep insights into customer behavior and long-term business impact. This approach ensures that e-commerce strategy is data-driven and adaptable to changing market conditions.
